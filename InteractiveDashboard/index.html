@@ -1,0 +1,277 @@
+<html>
+<head>
+	<title>Interactive Dashboard | Embed API Demos</title>
+	
+	<!-- Latest compiled and minified CSS -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+	<link rel="stylesheet" href="css/styles.css">
+	
+	<!-- Optional theme -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css">
+	
+	<!-- Load jQuery -->
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+	
+	<!-- Latest compiled and minified JavaScript -->
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+	
+	<!-- Load D3 Dependencies -->
+	<script src="//cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
+	<script src="//labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
+	
+	<style>
+		.axis text{
+			font: 10px sans-serif;
+			fill: black;
+		}
+		
+		.axis path,.axis line {
+		  fill: none;
+		  stroke: #000;
+		  shape-rendering: crispEdges;
+		}
+
+		.x.axis path {
+		  display: none;
+		}	
+	</style>
+</head>
+<body>
+	<!--
+	-	API BASE CODE
+	-
+	-->
+	<script>
+	(function(w,d,s,g,js,fjs){
+		g=w.gapi||(w.gapi={});g.analytics={q:[],ready:function(cb){this.q.push(cb)}};
+		js=d.createElement(s);fjs=d.getElementsByTagName(s)[0];
+		js.src='https://apis.google.com/js/platform.js';
+		fjs.parentNode.insertBefore(js,fjs);js.onload=function(){g.load('analytics')};
+	}(window,document,'script'));
+	</script>
+	
+	<!--
+	-	Load Custom component libraries
+	-
+	-->
+	<script src="js/DateRangeSelector.js"></script>
+	<script src="js/SegmentSelector.js"></script>
+	<script src="js/D3Chart.js"></script>
+	
+	<div class="container">
+		<div class="row">
+			<div class="col-md-12">
+				<h1>Interactive Dashboard | Embed API Demos</h1>
+			</div>
+		</div>
+		
+		<!--
+		-	Containers
+		-	
+		-->
+		<div class="row">
+			<div class="col-md-12">
+				<div id="auth-button"></div>
+			</div>
+		</div>
+		
+		<div class="row">
+			<div class="col-md-12">
+				<div class="ViewSelector" id="view-selector"></div>
+			</div>
+		</div>
+			
+		<div class="row">
+			<div id="date-range-selector"></div>
+		</div>
+		
+		<div class="row">
+			<div id="segment-selector"></div>
+		</div>
+		
+		<div class="row">
+			<div id="timeline"></div>
+		</div>
+		
+		<div class="row">
+			<div id="channels"></div>
+		</div>
+		
+		<div class="row">
+			<div id="sessionChart"></div>
+		</div>
+		
+		<div class="row">
+			<div id="d3Viz"></div>
+		</div>
+	</div>
+	
+	
+	<!-- 
+	-	API BASE READY
+	-
+	-->
+	<script>
+	
+	/**
+	 *	Updates the chart content with the updated query parameters
+	 *	@param {HTML Element} reference to the chart lists
+	 *	@param {Object} updated query parameters
+	 */
+	function updateCharts(charts, queryParams){
+		for(chart in charts){
+			charts[chart].set(queryParams).execute();
+		}
+		
+	}	
+	
+	gapi.analytics.ready(function(){
+		
+		var clientID = "805691238373-gjicrrj7mlvhs0gttsadoes3th1erfnn.apps.googleusercontent.com";
+		
+		/**
+		 *	Initialise Authenication
+		 *	
+		 */
+		gapi.analytics.auth.authorize({
+			"clientid" : clientID,
+			"container" : "auth-button"
+		});
+		
+		/**
+		 *	Instantiate Components
+		 *
+		 */
+		var viewSelector = new gapi.analytics.ViewSelector({
+			"container" : "view-selector"
+		});
+		
+		var dateSelector = new gapi.analytics.ext.DateRangeSelector({
+			"container" : "date-range-selector"
+		});
+		
+		var segmentSelector = new gapi.analytics.ext.SegmentSelector({
+			"container" : "segment-selector"
+		});
+		
+		var chartWidgets = {
+			"timeline" : new gapi.analytics.googleCharts.DataChart({
+				"query" : {
+					"metrics" : "ga:sessions",
+					"dimensions" : "ga:date",
+					"start-date" : "30daysAgo",
+					"end-date" : "yesterday"
+				},
+				"chart" : {
+					"container" : "timeline",
+					"type" : "LINE",
+					"options" : {
+						"title" : "Sessions over time",
+						"width" : "100%"
+					
+					}
+				}
+			}),
+			
+			"channels" : new gapi.analytics.googleCharts.DataChart({
+				"query" : {
+					"metrics" : "ga:sessions, ga:users, ga:pageviewsPerSession, ga:bounceRate, ga:goalCompletionsAll, ga:goalConversionRateAll",
+					"dimensions" : "ga:channelGrouping",
+					"start-date" : "30daysAgo",
+					"end-date" : "yesterday"
+				},
+				"chart" : {
+					"container" : "channels",
+					"type" : "TABLE",
+					"options" : {
+						"sortColumn" : 1,
+						"sortAscending" : false,
+						"width" : "100%"
+					}
+				}	
+			}),
+			
+			"sessionDonut" : new gapi.analytics.googleCharts.DataChart({
+				"query" : {
+					"metrics" : "ga:sessions",
+					"dimensions" : "ga:channelGrouping",
+					"start-date" : "30daysAgo",
+					"end-date" : "yesterday"
+				},
+				"chart" : {
+					"container" : "sessionChart",
+					"type" : "PIE",
+					"options" : {
+						"title" : "Sessions by channels",
+						"pieHole" : 0.5
+					}
+				}
+			}),
+			
+			"d3Viz" : new gapi.analytics.ext.D3Chart({
+				"container" : "d3Viz",
+				"query" : {
+					"metrics" : "ga:sessions",
+					"dimensions" : "ga:channelGrouping",
+					"start-date" : "30daysAgo",
+					"end-date" : "yesterday"
+				}
+			})
+		};
+		
+		/**
+		 *	Auth Success
+		 *
+		 */
+		gapi.analytics.auth.on("success", function(response){
+			document.getElementById("auth-button").style.display = "none";
+			
+			/**
+			 *	Execute and render components
+			 *
+			 */
+			viewSelector.execute();
+			dateSelector.execute();
+			segmentSelector.execute();
+
+		});
+		
+		/**
+		 *	Component Handlers
+		 *
+		 */
+		viewSelector.on("change", function(ids){
+			var queryParams = {
+				"query" : {
+					"ids" : ids
+				}
+			};
+			 
+			updateCharts(chartWidgets, queryParams);
+		});
+		
+		dateSelector.on("change", function(dates){
+			var queryParams = {
+				"query" : {
+					"start-date" : dates["start-date"],
+					"end-date" : dates["end-date"]
+				}
+			};
+			
+			updateCharts(chartWidgets, queryParams);
+		});
+		
+		segmentSelector.on("change", function(response){
+			var queryParams = {
+				"query" : {
+					"segment" : response.segment.definition
+				}
+			};
+			
+			updateCharts(chartWidgets, queryParams);
+		});
+		
+	});
+	</script>
+</body>
+</html>
